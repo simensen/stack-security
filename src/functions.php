@@ -15,7 +15,7 @@ function delegate_authorization(
 ) {
     $response = $app->handle($request, $type, $catch);
 
-    if ($response->getStatusCode()==401 && $request->headers->get('WWW-Authenticate') === 'Stack') {
+    if ($response->getStatusCode()==401 && $response->headers->get('WWW-Authenticate') === 'Stack') {
         // By convention, we look for 401 response that has a WWW-Authenticate with field value of
         // Stack. In that case, we should pass the response to the delegatee's challenge callback.
         $response = call_user_func($challenge, $response);
