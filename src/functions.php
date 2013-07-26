@@ -18,6 +18,15 @@ function authenticate(
         return \Stack\Security\delegate_authorization($app, $challenge, $request, $type, $catch, $checkAuthorization);
     };
 
+    if ($request->attributes->has('stack.authentication.token')) {
+        // If the request already has a Stackauthentication token
+        // we should delegate but leave open the possiblity that
+        // we might challenge.
+        //
+        // TODO: Should this be optional or otherwise configurable?
+        return [true, call_user_func($delegate), null];
+    }
+
     if (null === $firewall = match_firewall($request, $firewalls)) {
         // If no firewalls are matched we should delegate and set
         // $checkAuthorization to false to ensure that we do not
