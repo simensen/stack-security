@@ -6,14 +6,61 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
+function authenticate(
+    HttpKernelInterface $app,
+    $challenge,
+    array $firewalls,
+    Request $request,
+    $type = HttpKernelInterface::MASTER_REQUEST,
+    $catch = true
+) {
+    $delegate = function ($checkAuthorization = true) use ($app, $challenge, $request, $type, $catch) {
+        return \Stack\Security\delegate_authorization($app, $challenge, $request, $type, $catch, $checkAuthorization);
+    };
+
+    if (null === $firewall = match_firewall($request, $firewalls)) {
+        // If no firewalls are matched we should delegate and set
+        // $checkAuthorization to false to ensure that we do not
+        // try to challenge if authorization fails.
+        return [true, call_user_func($delegate, false), $firewall];
+    }
+
+    if ($request->headers->has('authorization')) {
+        // If we have an authorization header we should pass back our
+        // delegate and let the middleware requesting authentication
+        // to handle it.
+        return [false, $delegate, $firewall];
+    }
+
+    if ($firewall['anonymous']) {
+        // We should delegate for anonymous requests but since
+        // we found a firewall for this request we should
+        // challenge if authorization fails.
+        return [true, call_user_func($delegate), $firewall];
+    }
+
+    // Since we do not allow anonymous requests and we found
+    // a firewall for this request we should challenge
+    // immediately.
+    $response = (new Response)->setStatusCode(401);
+
+    return [true, call_user_func($challenge, $response), $firewall];
+}
+
+
 function delegate_authorization(
     HttpKernelInterface $app,
     $challenge,
     Request $request,
     $type = HttpKernelInterface::MASTER_REQUEST,
-    $catch = true
+    $catch = true,
+    $checkAuthorization = true
 ) {
     $response = $app->handle($request, $type, $catch);
+
+    if (!$checkAuthorization) {
+        return $response;
+    }
 
     if ($response->getStatusCode()==401 && $response->headers->get('WWW-Authenticate') === 'Stack') {
         // By convention, we look for 401 response that has a WWW-Authenticate with field value of
@@ -24,7 +71,7 @@ function delegate_authorization(
     return $response;
 }
 
-function resolve_firewall(Request $request, array $firewalls = [])
+function match_firewall(Request $request, array $firewalls)
 {
     if (!$firewalls) {
         // By default we should firewall the root request and not allow
