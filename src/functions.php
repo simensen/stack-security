@@ -18,8 +18,8 @@ function authenticate(
         return \Stack\Security\delegate_authorization($app, $challenge, $request, $type, $catch, $checkAuthorization);
     };
 
-    if ($request->attributes->has('stack.authentication.token')) {
-        // If the request already has a Stackauthentication token
+    if ($request->attributes->has('stack.authn.token')) {
+        // If the request already has a Stack authentication token
         // we should delegate but leave open the possiblity that
         // we might challenge.
         //
