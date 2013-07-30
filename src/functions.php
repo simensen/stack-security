@@ -106,7 +106,7 @@ function match_firewall(Request $request, array $firewalls)
         ];
     }
 
-    $sortedFirewalls = array();
+    $sortedFirewalls = [];
     foreach ($firewalls as $firewall) {
         if (!isset($firewall['anonymous'])) {
             $firewall['anonymous'] = false;
@@ -119,10 +119,10 @@ function match_firewall(Request $request, array $firewalls)
         $sortedFirewalls[$firewall['path']] = $firewall;
     }
 
-    ksort($sortedFirewalls);
+    krsort($sortedFirewalls);
 
     foreach ($sortedFirewalls as $path => $firewall) {
-        if (0 === strpos($request->getRequestUri(), $path)) {
+        if (0 === strpos($request->getPathInfo(), $path)) {
             return $firewall;
         }
     }
