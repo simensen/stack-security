@@ -80,6 +80,22 @@ function delegate_authorization(
     return $response;
 }
 
+function delegate_missing_authentication(array $firewall, $delegate, $challenge)
+{
+    if ($firewall['anonymous']) {
+        // If anonymous requests are allowed by our firewall we should
+        // hand off to the delegate.
+        return call_user_func($delegate);
+    }
+
+    // Otherwise, we should challenge immediately.
+    // We use $challenge to be slightly more DRY.
+    $response = (new Response)->setStatusCode(401);
+    call_user_func($challenge, $response);
+
+    return $response;
+}
+
 function match_firewall(Request $request, array $firewalls)
 {
     if (!$firewalls) {
